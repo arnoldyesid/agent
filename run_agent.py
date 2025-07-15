@@ -26,15 +26,15 @@ def simple_interface():
     from data_manager import DataManager
     import pandas as pd
     
-    print("🚀 Enhanced Trading Analysis Interface")
+    print("🚀 Simple Trading Analysis Interface (Fallback Mode)")
     print("💡 Available commands:")
     print("  1. Type 'pnl' for profit/loss calculation")
     print("  2. Type 'stats' for trade statistics") 
     print("  3. Type 'dates' for available dates")
     print("  4. Type 'validation' for validation process explanation")
     print("  5. Type 'exit' to quit")
-    print("🆕 Enhanced with deep analysis capabilities!")
-    print("🛑 This mode avoids complex AI agent issues\n")
+    print("🎯 NOTE: For YES/NO validation and deep analysis, try: python run_deep_agent.py")
+    print("🛑 This mode avoids complex AI agent issues but lacks advanced features\n")
     
     try:
         dm = DataManager()
@@ -131,14 +131,14 @@ def simple_interface():
         print(f"❌ Failed to initialize: {e}")
 
 def main():
-    print("Initializing Trading Analysis Agent...")
+    print("Initializing Deep Trading Analysis Agent...")
     
     try:
-        from trading_agent import TradingAgent
-        agent = TradingAgent()
+        from deep_trading_agent import DeepTradingAgent
+        agent = DeepTradingAgent()
         agent.run_interactive()
     except Exception as e:
-        print(f"⚠️ AI agent failed to start: {e}")
+        print(f"⚠️ Deep AI agent failed to start: {e}")
         print("🔄 Falling back to simple interface...\n")
         simple_interface()
 
