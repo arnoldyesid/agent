@@ -1,0 +1,70 @@
+{
+  "summary": {
+    "real_trades_count": 16155,
+    "sim_trades_count": 355311,
+    "analysis_period": {
+      "start": "2025-06-06T05:19:11+00:00",
+      "end": "2025-06-24T00:17:02+00:00"
+    }
+  },
+  "validation_result": {
+    "is_acceptable": false,
+    "accuracy_verdict": "NO",
+    "execution_accuracy_pct": 0,
+    "reason": "No matching trades found - possible algorithm crash or data misalignment"
+  },
+  "metrics": {
+    "live_ec": 177534847281548.0,
+    "sim_ec": 3658128209.94139,
+    "live_trade_count": 16155,
+    "sim_trade_count": 355311,
+    "accurate_matches": 0,
+    "total_testable": 0,
+    "execution_accuracy_pct": 0
+  },
+  "match_details": [],
+  "execution_analysis": {},
+  "price_improvement": {},
+  "timing_analysis": {},
+  "volume_analysis": {
+    "real_total_volume": 177534847281548.0,
+    "sim_total_volume": 3658128209.94139,
+    "real_trade_count": 16155,
+    "sim_trade_count": 355311,
+    "unmatched_real_count": 16155,
+    "unmatched_sim_count": 355311
+  },
+  "spread_analysis": {
+    "avg_spread": 1.1542892334444284,
+    "median_spread": 1.0,
+    "max_spread": 72.0,
+    "min_spread": 1.0,
+    "spread_volatility": 1.4941798849026433
+  },
+  "liquidity_analysis": {
+    "avg_bid_depth": 1281483.8543992639,
+    "avg_ask_depth": 957881.9956181645,
+    "liquidity_imbalance": 323601.8587810993,
+    "min_bid_depth": 47.75335033787633,
+    "min_ask_depth": 47.7501503378553
+  },
+  "volatility_analysis": {
+    "return_volatility": 0.003982869767412924,
+    "price_range": 2366.0,
+    "price_range_pct": 2.213052163392347
+  },
+  "market_impact": {
+    "avg_buy_price_vs_mid": -2102.855091278063,
+    "avg_sell_price_vs_mid": -2132.153967695922,
+    "estimated_total_slippage": 26359396689.930496
+  },
+  "insights": [
+    "\ud83d\udca7 Significant liquidity imbalance favoring bid side ($323,602)",
+    "\ud83d\udcb8 Estimated $26,359,396,689.93 in slippage loss from market impact",
+    "\ud83d\udd0d 100% of real trades have no simulation equivalent - check strategy differences"
+  ],
+  "diagnostics": [
+    "\u26a0\ufe0f Found 1141 trading gaps >5min (max: 136min) - possible algo crashes",
+    "\ud83d\udcc8 High sim activity (355311 vs 16155 live) - possible volatility over-reaction"
+  ]
+}

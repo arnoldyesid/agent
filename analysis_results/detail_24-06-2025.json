@@ -1,0 +1,196 @@
+{
+  "summary": {
+    "real_trades_count": 16155,
+    "sim_trades_count": 385846,
+    "analysis_period": {
+      "start": "2025-06-06T05:19:11+00:00",
+      "end": "2025-06-24T00:17:02+00:00"
+    }
+  },
+  "validation_result": {
+    "is_acceptable": true,
+    "accuracy_verdict": "YES",
+    "execution_accuracy_pct": 100.0,
+    "reason": "Simulation achieves 100.0% execution accuracy within strict criteria (2s, \u00b10.005%)"
+  },
+  "metrics": {
+    "live_ec": 177534847281548.0,
+    "sim_ec": 3830287942.0069995,
+    "live_trade_count": 16155,
+    "sim_trade_count": 385846,
+    "accurate_matches": 44,
+    "total_testable": 44,
+    "execution_accuracy_pct": 100.0
+  },
+  "match_details": [
+    {
+      "real_time": 1750724222,
+      "sim_time": "1750724220",
+      "time_diff": "2",
+      "real_price": 105200.0,
+      "sim_price": 105200.0,
+      "price_diff_pct": 0.0,
+      "side": "B",
+      "accurate": true
+    },
+    {
+      "real_time": 1750721925,
+      "sim_time": "1750721926",
+      "time_diff": "1",
+      "real_price": 105445.0,
+      "sim_price": 105441.0,
+      "price_diff_pct": 0.0037934468206173837,
+      "side": "A",
+      "accurate": true
+    },
+    {
+      "real_time": 1750721872,
+      "sim_time": "1750721871",
+      "time_diff": "1",
+      "real_price": 105429.0,
+      "sim_price": 105388.0,
+      "price_diff_pct": 0.03888873080461732,
+      "side": "A",
+      "accurate": true
+    },
+    {
+      "real_time": 1750721798,
+      "sim_time": "1750721799",
+      "time_diff": "1",
+      "real_price": 105428.0,
+      "sim_price": 105451.0,
+      "price_diff_pct": 0.02181583640019729,
+      "side": "B",
+      "accurate": true
+    },
+    {
+      "real_time": 1750721788,
+      "sim_time": "1750721787",
+      "time_diff": "1",
+      "real_price": 105468.0,
+      "sim_price": 105495.0,
+      "price_diff_pct": 0.02560018204573899,
+      "side": "B",
+      "accurate": true
+    },
+    {
+      "real_time": 1750721744,
+      "sim_time": "1750721745",
+      "time_diff": "1",
+      "real_price": 105486.0,
+      "sim_price": 105470.0,
+      "price_diff_pct": 0.015167889577763874,
+      "side": "A",
+      "accurate": true
+    },
+    {
+      "real_time": 1750721742,
+      "sim_time": "1750721744",
+      "time_diff": "2",
+      "real_price": 105486.0,
+      "sim_price": 105460.0,
+      "price_diff_pct": 0.024647820563866295,
+      "side": "A",
+      "accurate": true
+    },
+    {
+      "real_time": 1750721683,
+      "sim_time": "1750721685",
+      "time_diff": "2",
+      "real_price": 105540.0,
+      "sim_price": 105556.0,
+      "price_diff_pct": 0.015160128861095318,
+      "side": "B",
+      "accurate": true
+    },
+    {
+      "real_time": 1750721614,
+      "sim_time": "1750721616",
+      "time_diff": "2",
+      "real_price": 105505.0,
+      "sim_price": 105535.0,
+      "price_diff_pct": 0.028434671342590402,
+      "side": "A",
+      "accurate": true
+    },
+    {
+      "real_time": 1750721592,
+      "sim_time": "1750721594",
+      "time_diff": "2",
+      "real_price": 105474.0,
+      "sim_price": 105450.0,
+      "price_diff_pct": 0.02275442289094943,
+      "side": "A",
+      "accurate": true
+    }
+  ],
+  "execution_analysis": {
+    "total_matched": 44,
+    "match_rate": 0.27236149798823894,
+    "avg_price_diff": -0.38636363636363635,
+    "avg_price_diff_pct": -0.0003664176492529815,
+    "price_improvement_count": 13,
+    "price_deterioration_count": 23,
+    "avg_time_diff": -1.7045454545454546
+  },
+  "price_improvement": {
+    "Buy": {
+      "avg_improvement": 2.5384615384615383,
+      "avg_improvement_pct": 0.0024109351250234242,
+      "improved_trades": 16,
+      "total_trades": 26
+    },
+    "Sell": {
+      "avg_improvement": 2.7222222222222223,
+      "avg_improvement_pct": 0.0025844004533776797,
+      "improved_trades": 8,
+      "total_trades": 18
+    }
+  },
+  "timing_analysis": {
+    "avg_latency": "-1",
+    "median_latency": -2.0,
+    "max_latency": "4",
+    "min_latency": "-5",
+    "trades_ahead": 7,
+    "trades_behind": 36
+  },
+  "volume_analysis": {
+    "real_total_volume": 177534847281548.0,
+    "sim_total_volume": 3829018134.1372,
+    "real_trade_count": 16155,
+    "sim_trade_count": 385802,
+    "unmatched_real_count": 16111,
+    "unmatched_sim_count": 385802
+  },
+  "spread_analysis": {
+    "avg_spread": 1.172709493004363,
+    "median_spread": 1.0,
+    "max_spread": 74.0,
+    "min_spread": 1.0,
+    "spread_volatility": 1.5536558777119327
+  },
+  "liquidity_analysis": {
+    "avg_bid_depth": 1117780.2955612221,
+    "avg_ask_depth": 1147480.0357698814,
+    "liquidity_imbalance": -29699.74020865932,
+    "min_bid_depth": 47.1706003337531,
+    "min_ask_depth": 47.16335033370342
+  },
+  "volatility_analysis": {
+    "return_volatility": 0.0044763354842911425,
+    "price_range": 1709.0,
+    "price_range_pct": 1.6227106409493677
+  },
+  "market_impact": {
+    "avg_buy_price_vs_mid": -509.28935035856557,
+    "avg_sell_price_vs_mid": -538.5882267764246,
+    "estimated_total_slippage": 24565589852.26984
+  },
+  "insights": [
+    "\u26a0\ufe0f Low trade matching rate (0.3%) suggests significant execution differences between real and simulated environments",
+    "\ud83d\udca7 Significant liquidity imbalance favoring ask side ($29,700)",
+    "\ud83d\udcb8 Estimated $24,565,589,852.27 in slippage loss from market impact",
+    "\ud83d\udd0d 100% of real trades have no simulation equivalent - check strategy differences"
+  ]
+}
