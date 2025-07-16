@@ -199,42 +199,63 @@ class DeepAnalysisEngine:
         unmatched_real = []
         unmatched_sim = []
         
-        for _, real_trade in real_trades.iterrows():
-            # Find simulation trades within time window
+        # Create a copy to track matched sim trades
+        sim_trades_copy = sim_trades.copy()
+        matched_sim_indices = set()
+        
+        # Loop through sim trades to find acceptable matches
+        for _, sim_trade in sim_trades_copy.iterrows():
+            if sim_trade.name in matched_sim_indices:
+                continue
+                
+            # Find real trades within time window
             time_mask = (
-                (sim_trades['timestamp'] >= real_trade['timestamp'] - time_tolerance) &
-                (sim_trades['timestamp'] <= real_trade['timestamp'] + time_tolerance) &
-                (sim_trades['side'] == real_trade['side'])
+                (real_trades['timestamp'] >= sim_trade['timestamp'] - time_tolerance) &
+                (real_trades['timestamp'] <= sim_trade['timestamp'] + time_tolerance) &
+                (real_trades['side'] == sim_trade['side'])
             )
             
-            potential_matches = sim_trades[time_mask]
+            potential_matches = real_trades[time_mask]
             
             if not potential_matches.empty:
                 # Find best match by price and quantity
-                price_diff = abs(potential_matches['price'] - real_trade['price'])
-                qty_diff = abs(potential_matches['quantity'] - real_trade['quantity'])
+                price_diff = abs(potential_matches['price'] - sim_trade['price'])
+                qty_diff = abs(potential_matches['quantity'] - sim_trade['quantity'])
                 
                 # Normalized distance metric
-                distance = price_diff / real_trade['price'] + qty_diff / real_trade['quantity']
+                distance = price_diff / sim_trade['price'] + qty_diff / sim_trade['quantity']
                 best_match_idx = distance.idxmin()
                 best_match = potential_matches.loc[best_match_idx]
                 
-                matched_trades.append({
-                    'real_price': real_trade['price'],
-                    'sim_price': best_match['price'],
-                    'real_qty': real_trade['quantity'],
-                    'sim_qty': best_match['quantity'],
-                    'real_time': real_trade['timestamp'],
-                    'sim_time': best_match['timestamp'],
-                    'side': real_trade['side'],
-                    'price_diff': real_trade['price'] - best_match['price'],
-                    'qty_diff': real_trade['quantity'] - best_match['quantity'],
-                    'time_diff': real_trade['timestamp'] - best_match['timestamp']
-                })
+                # Check if this real trade hasn't been matched already
+                already_matched = any(
+                    match['real_time'] == best_match['timestamp'] and 
+                    match['real_price'] == best_match['price'] and
+                    match['side'] == best_match['side']
+                    for match in matched_trades
+                )
                 
-                # Remove matched trade from sim_trades to avoid double matching
-                sim_trades = sim_trades.drop(best_match_idx)
-            else:
+                if not already_matched:
+                    matched_trades.append({
+                        'real_price': best_match['price'],
+                        'sim_price': sim_trade['price'],
+                        'real_qty': best_match['quantity'],
+                        'sim_qty': sim_trade['quantity'],
+                        'real_time': best_match['timestamp'],
+                        'sim_time': sim_trade['timestamp'],
+                        'side': sim_trade['side'],
+                        'price_diff': best_match['price'] - sim_trade['price'],
+                        'qty_diff': best_match['quantity'] - sim_trade['quantity'],
+                        'time_diff': best_match['timestamp'] - sim_trade['timestamp']
+                    })
+                    
+                    # Mark this sim trade as matched
+                    matched_sim_indices.add(sim_trade.name)
+        
+        # Find unmatched real trades
+        matched_real_times = {match['real_time'] for match in matched_trades}
+        for _, real_trade in real_trades.iterrows():
+            if real_trade['timestamp'] not in matched_real_times:
                 unmatched_real.append(real_trade)
         
         # Analyze matched trades
@@ -283,6 +304,9 @@ class DeepAnalysisEngine:
                 'trades_behind': sum(1 for t in time_diffs if t < 0)
             }
         
+        # Calculate unmatched sim trades
+        unmatched_sim_count = len(sim_trades) - len(matched_sim_indices)
+        
         # Volume analysis
         results['volume_analysis'] = {
             'real_total_volume': real_trades['value'].sum(),
@@ -290,7 +314,7 @@ class DeepAnalysisEngine:
             'real_trade_count': len(real_trades),
             'sim_trade_count': len(sim_trades),
             'unmatched_real_count': len(unmatched_real),
-            'unmatched_sim_count': len(sim_trades)  # Remaining after matching
+            'unmatched_sim_count': unmatched_sim_count
         }
         
         return results
