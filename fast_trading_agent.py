@@ -145,13 +145,13 @@ class FastTradingAgent:
         # Add problematic dates if any
         problematic = self.quick_data.get('problematic_dates', [])
         if problematic:
-            report += f"\\n⚠️ **PROBLEMATIC DATES** ({len(problematic)}):\\n"
+            report += f"\n⚠️ **PROBLEMATIC DATES** ({len(problematic)}):\n"
             for date in problematic[:5]:  # Show first 5
                 verdict = self.quick_data.get('date_verdicts', {}).get(date, 'UNKNOWN')
                 accuracy = self.quick_data.get('date_accuracies', {}).get(date, 0)
-                report += f"• {date}: {verdict} ({accuracy:.1f}% accuracy)\\n"
+                report += f"• {date}: {verdict} ({accuracy:.1f}% accuracy)\n"
             if len(problematic) > 5:
-                report += f"• ... and {len(problematic) - 5} more\\n"
+                report += f"• ... and {len(problematic) - 5} more\n"
         
         return report
     
@@ -225,20 +225,27 @@ class FastTradingAgent:
         
         # Add diagnostics if accuracy is poor
         if diagnostics:
-            report += f"\\n🔍 **DIAGNOSTIC INSIGHTS**\\n"
+            report += f"\n🔍 **DIAGNOSTIC INSIGHTS**\n"
             for diagnostic in diagnostics:
-                report += f"• {diagnostic}\\n"
+                report += f"• {diagnostic}\n"
         
         # Add execution analysis if available
         execution = detailed.get('execution_analysis', {})
         if execution and is_acceptable:
-            report += f"\\n📈 **ADDITIONAL METRICS**\\n"
-            report += f"• Broader matches (5s window): {execution.get('total_matched', 0):,}\\n"
-            report += f"• Broader match rate: {execution.get('match_rate', 0):.1f}%\\n"
+            report += f"\n📈 **ADDITIONAL METRICS**\n"
+            report += f"• Broader matches (5s window): {execution.get('total_matched', 0):,}\n"
+            report += f"• Broader match rate: {execution.get('match_rate', 0):.1f}%\n"
             
             timing = detailed.get('timing_analysis', {})
             if timing:
-                report += f"• Average latency: {timing.get('avg_latency', 0):+.1f} seconds\\n"
+                avg_latency = timing.get('avg_latency', 0)
+                # Ensure it's a number
+                if isinstance(avg_latency, str):
+                    try:
+                        avg_latency = float(avg_latency)
+                    except ValueError:
+                        avg_latency = 0
+                report += f"• Average latency: {avg_latency:+.1f} seconds\n"
         
         return report
     
@@ -269,13 +276,13 @@ class FastTradingAgent:
             accuracy = self.quick_data.get('date_accuracies', {}).get(date, 0)
             
             if verdict == 'ERROR':
-                report += f"• {date}: ❌ ERROR - Analysis failed\\n"
+                report += f"• {date}: ❌ ERROR - Analysis failed\n"
             elif verdict == 'NO':
-                report += f"• {date}: ❌ NO ({accuracy:.1f}% accuracy)\\n"
+                report += f"• {date}: ❌ NO ({accuracy:.1f}% accuracy)\n"
             elif accuracy < 50:
-                report += f"• {date}: ⚠️ LOW ACCURACY ({accuracy:.1f}%)\\n"
+                report += f"• {date}: ⚠️ LOW ACCURACY ({accuracy:.1f}%)\n"
             else:
-                report += f"• {date}: ❓ {verdict} ({accuracy:.1f}% accuracy)\\n"
+                report += f"• {date}: ❓ {verdict} ({accuracy:.1f}% accuracy)\n"
         
         # Add investigation recommendations
         report += f"""
@@ -321,9 +328,9 @@ class FastTradingAgent:
                 emoji = "❓"
             
             if verdict in ['YES', 'NO']:
-                report += f"• {date}: {emoji} {verdict} ({accuracy:.1f}% accuracy)\\n"
+                report += f"• {date}: {emoji} {verdict} ({accuracy:.1f}% accuracy)\n"
             else:
-                report += f"• {date}: {emoji} {verdict}\\n"
+                report += f"• {date}: {emoji} {verdict}\n"
         
         return report
     
@@ -493,19 +500,19 @@ Remember: All heavy processing is done upfront. You just interpret cached result
                     continue
                 
                 # Process user input with agent
-                print("\\n⚡ Processing instantly...")
+                print("\n⚡ Processing instantly...")
                 try:
                     response = self.agent.invoke({"input": user_input})
-                    print(f"\\n{response['output']}\\n")
+                    print(f"\n{response['output']}\n")
                 except Exception as e:
-                    print(f"❌ Error processing request: {str(e)}\\n")
+                    print(f"❌ Error processing request: {str(e)}\n")
                 
             except KeyboardInterrupt:
                 break
             except EOFError:
                 break
             except Exception as e:
-                print(f"❌ Unexpected error: {str(e)}\\n")
+                print(f"❌ Unexpected error: {str(e)}\n")
         
         print("👋 Thanks for using the Lightning-Fast Trading Analysis Agent!")
 
