@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Fast Agent Runner
+Enhanced Fast Agent Runner
 
-Runs the lightning-fast trading agent that uses pre-computed results.
+Runs the enhanced fast trading agent with comprehensive business intelligence
+and deep data-driven analysis capabilities.
 """
 
 from fast_trading_agent import main
