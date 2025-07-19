@@ -1,9 +1,14 @@
+# Trading Analysis MCP Server Requirements
+# Core data processing (for preprocessing only)
 pandas==2.2.2
-openai==1.55.3
-httpx==0.27.2
-langchain==0.1.16
-langchain-community==0.0.36
-langchain-openai==0.1.7
-python-dotenv==1.0.1
+numpy>=1.21.0
 tqdm==4.66.4
-typing-extensions>=4.11.0,<5.0.0
+
+# Ngrok integration for public URL exposure
+pyngrok==7.0.0
+
+# MCP server uses only built-in Python modules:
+# - http.server (built-in HTTP server)
+# - urllib.parse (built-in URL parsing) 
+# - json (built-in JSON handling)
+# - os, sys (built-in system modules)

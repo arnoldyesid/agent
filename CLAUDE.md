@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a cryptocurrency trading analysis agent that compares real trading data with simulation data to identify price discrepancies. The agent uses GPT-4o through LangChain to provide intelligent analysis of trading inconsistencies.
+This is a cryptocurrency trading analysis system that compares real trading data with simulation data to identify price discrepancies. The system processes data and provides access via MCP (Model Context Protocol) connector for Claude at https://claude.ai/settings/connectors.
 
 ## Commands
 
@@ -32,19 +32,21 @@ pip install -r requirements.txt
 # IMPORTANT: Always activate virtual environment first
 source env/bin/activate
 
-# ⚡ STREAMLINED: Lightning-Fast Agent (Only option - optimized and focused)
 # Step 1: Preprocess data ONCE (may take 5-15 minutes)
-python improved_preprocess_data.py
+python3 improved_preprocess_data.py
 
-# Step 2: Run fast agent (instant responses with deep analysis!)
-python run_fast_agent.py
+# Step 2: Start MCP server for Claude access
+python3 trading_analysis_api.py
+
+# Step 3: Get MCP connector paths for Claude setup
+python3 show_mcp_paths.py
 ```
 
 ## Architecture
 
-Streamlined, focused architecture optimized for performance and deep analysis:
+Simplified MCP-based architecture for Claude integration:
 
-### ⚡ Optimized Fast Architecture (Only Option)
+### 📊 MCP Trading Analysis System
 
 1. **improved_preprocess_data.py**: Enhanced one-time data preprocessing:
    - `ImprovedDataPreprocessor` class: Advanced analysis with granular accuracy reporting
@@ -54,15 +56,17 @@ Streamlined, focused architecture optimized for performance and deep analysis:
    - Comprehensive business intelligence insights
    - Saves detailed validation results to JSON files
 
-2. **fast_trading_agent.py**: Lightning-fast agent with deep analysis capabilities:
-   - `GetOverallValidation`: Instant comprehensive verdict from cached results
-   - `AnalyzeSpecificDate`: Detailed analysis with business intelligence
-   - `GetProblematicDates`: Smart identification of accuracy issues with root cause analysis
-   - `GetAvailableDates`: Quick list of all analyzed dates with performance metrics
-   - Enhanced pattern analysis and trade matching insights
-   - Business recommendations and actionable next steps
+2. **trading_analysis_api.py**: MCP server providing Claude access:
+   - HTTP API server with 7 analysis endpoints
+   - Real-time access to preprocessing results
+   - JSON-formatted responses for Claude integration
+   - Automatic path configuration for MCP setup
+   - CORS-enabled for web-based Claude access
 
-3. **run_fast_agent.py**: Optimized agent runner
+3. **show_mcp_paths.py**: MCP configuration helper:
+   - Displays exact paths needed for Claude MCP connector
+   - Copy-paste ready configuration values
+   - Verifies required files and dependencies
 
 ## Data Structure
 
