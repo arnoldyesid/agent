@@ -33,8 +33,10 @@ class ImprovedDataPreprocessor:
         try:
             df = pd.read_csv(filepath, encoding='utf-8')
             
-            # Convert created_time to timestamp
-            df['timestamp'] = pd.to_datetime(df['created_time']).view('int64') // 10**9
+            # Convert created_time to timestamp and datetime
+            df['timestamp'] = pd.to_datetime(df['created_time']).astype('int64') // 10**9
+            df['datetime'] = pd.to_datetime(df['created_time'])
+            df['date'] = df['datetime'].dt.date
             
             # Clean numeric columns
             df['price'] = pd.to_numeric(df['price'], errors='coerce')
@@ -49,6 +51,53 @@ class ImprovedDataPreprocessor:
         except Exception as e:
             print(f"Error loading real trades: {str(e)}")
             raise
+    
+    def analyze_real_trades_by_date(self, real_trades: pd.DataFrame) -> dict:
+        """Analyze real trades and group by date to see which dates have trading activity"""
+        try:
+            # Group trades by date and count
+            date_groups = real_trades.groupby('date').agg({
+                'price': 'count',  # Count of trades
+                'value': 'sum',    # Total volume
+                'timestamp': ['min', 'max']  # Time range
+            }).round(2)
+            
+            date_groups.columns = ['trade_count', 'total_volume', 'start_time', 'end_time']
+            
+            # Convert to dictionary with date string keys (DD-MM-YYYY format)
+            date_analysis = {}
+            for date_obj, row in date_groups.iterrows():
+                date_str = date_obj.strftime('%d-%m-%Y')
+                date_analysis[date_str] = {
+                    'date_obj': date_obj,
+                    'trade_count': int(row['trade_count']),
+                    'total_volume': float(row['total_volume']),
+                    'start_time': int(row['start_time']),
+                    'end_time': int(row['end_time']),
+                    'trades_data': real_trades[real_trades['date'] == date_obj].copy()
+                }
+            
+            return date_analysis
+            
+        except Exception as e:
+            print(f"Error analyzing real trades by date: {str(e)}")
+            return {}
+    
+    def filter_real_trades_by_date(self, real_trades: pd.DataFrame, target_date_str: str) -> pd.DataFrame:
+        """Filter real trades to only include trades from the target date"""
+        try:
+            # Parse target date (format: DD-MM-YYYY)
+            from datetime import datetime
+            target_date = datetime.strptime(target_date_str, '%d-%m-%Y').date()
+            
+            # Filter trades for this specific date
+            filtered_trades = real_trades[real_trades['date'] == target_date].copy()
+            
+            return filtered_trades
+            
+        except Exception as e:
+            print(f"Error filtering trades for date {target_date_str}: {str(e)}")
+            return pd.DataFrame()  # Return empty DataFrame on error
 
     def extract_simulation_trades(self, sim_data: List[Dict]) -> pd.DataFrame:
         """Extract actual trades from simulation market data"""
@@ -88,8 +137,86 @@ class ImprovedDataPreprocessor:
         
         return df
 
+    def analyze_execution_quality(self, real_trades: pd.DataFrame, sim_trades: pd.DataFrame, spike_addition: float = 25.0) -> Dict:
+        """Analyze execution quality by iterating through simulation trades and matching against real trades"""
+        
+        if sim_trades.empty:
+            return {
+                'total_sim_trades': 0,
+                'matched_trades': 0,
+                'accuracy_pct': 0,
+                'match_details': [],
+                'reason': 'No simulation trades found'
+            }
+            
+        if real_trades.empty:
+            return {
+                'total_sim_trades': len(sim_trades),
+                'matched_trades': 0,
+                'accuracy_pct': 0,
+                'match_details': [],
+                'reason': 'No real trades found for comparison'
+            }
+        
+        total_sim_trades = len(sim_trades)
+        matched_trades = 0
+        match_details = []
+        used_real_indices = set()
+        
+        # Iterate through each simulated trade
+        for sim_idx, sim_trade in sim_trades.iterrows():
+            # Find real trades within acceptable match criteria
+            time_tolerance = 5  # 5 seconds
+            
+            # Time window filter
+            time_mask = (
+                (real_trades['timestamp'] >= sim_trade['timestamp'] - time_tolerance) &
+                (real_trades['timestamp'] <= sim_trade['timestamp'] + time_tolerance) &
+                (real_trades['side'] == sim_trade['side'])  # Same side (buy/sell)
+            )
+            
+            potential_real_matches = real_trades[time_mask]
+            
+            if not potential_real_matches.empty:
+                # Check price criteria with SpikeAddition threshold
+                price_diff_abs = abs(potential_real_matches['price'] - sim_trade['price'])
+                acceptable_price_matches = potential_real_matches[price_diff_abs <= spike_addition]
+                
+                if not acceptable_price_matches.empty:
+                    # Find best match (closest in time, then price)
+                    time_diffs = abs(acceptable_price_matches['timestamp'] - sim_trade['timestamp'])
+                    best_real_idx = time_diffs.idxmin()
+                    
+                    # Avoid double-matching
+                    if best_real_idx not in used_real_indices:
+                        matched_trades += 1
+                        used_real_indices.add(best_real_idx)
+                        best_real_match = acceptable_price_matches.loc[best_real_idx]
+                        
+                        match_details.append({
+                            'sim_time': int(sim_trade['timestamp']),
+                            'real_time': int(best_real_match['timestamp']),
+                            'time_diff': int(abs(sim_trade['timestamp'] - best_real_match['timestamp'])),
+                            'sim_price': float(sim_trade['price']),
+                            'real_price': float(best_real_match['price']),
+                            'price_diff_abs': float(abs(sim_trade['price'] - best_real_match['price'])),
+                            'side': sim_trade['side'],
+                            'sim_quantity': float(sim_trade['quantity']),
+                            'real_quantity': float(best_real_match['quantity'])
+                        })
+        
+        accuracy_pct = (matched_trades / total_sim_trades * 100) if total_sim_trades > 0 else 0
+        
+        return {
+            'total_sim_trades': total_sim_trades,
+            'matched_trades': matched_trades,
+            'accuracy_pct': accuracy_pct,
+            'match_details': match_details,
+            'reason': f'Matched {matched_trades}/{total_sim_trades} sim trades using ${spike_addition} price tolerance'
+        }
+
     def analyze_single_date(self, real_trades: pd.DataFrame, sim_data: List[Dict], date_str: str) -> Dict:
-        """Analyze a single date with improved matching and granular accuracy"""
+        """Analyze a single date with corrected matching logic that iterates through sim trades"""
         
         # Extract simulation trades
         sim_trades = self.extract_simulation_trades(sim_data)
@@ -102,14 +229,6 @@ class ImprovedDataPreprocessor:
         live_trade_count = len(real_trades)
         sim_trade_count = len(sim_trades)
         
-        # Multiple matching criteria with different tolerances
-        tolerances = [
-            {'time': 2, 'price_pct': 0.005, 'name': 'strict'},
-            {'time': 5, 'price_pct': 0.01, 'name': 'moderate'}, 
-            {'time': 10, 'price_pct': 0.02, 'name': 'relaxed'}
-        ]
-        
-        results = {}
         diagnostics = []
         
         # If no simulation trades, it's a clear failure
@@ -128,7 +247,7 @@ class ImprovedDataPreprocessor:
                     'live_trade_count': live_trade_count,
                     'sim_trade_count': sim_trade_count,
                     'accurate_matches': 0,
-                    'total_testable': 0,
+                    'total_testable': sim_trade_count,
                     'execution_accuracy_pct': 0
                 },
                 'diagnostics': diagnostics,
@@ -155,7 +274,7 @@ class ImprovedDataPreprocessor:
                     'live_trade_count': live_trade_count,
                     'sim_trade_count': sim_trade_count,
                     'accurate_matches': 0,
-                    'total_testable': 0,
+                    'total_testable': sim_trade_count,
                     'execution_accuracy_pct': 0
                 },
                 'diagnostics': diagnostics,
@@ -179,56 +298,17 @@ class ImprovedDataPreprocessor:
         if real_overlap.empty:
             diagnostics.append(f"⚠️ No real trades in overlap period ({overlap_end - overlap_start}s)")
             
-        # Perform matching with strict criteria (for main result)
-        time_tolerance = 2
-        price_tolerance = 0.005
+        # Use the new analyze_execution_quality function with SpikeAddition parameter
+        spike_addition = 25.0  # $25 threshold as specified in requirements
+        execution_results = self.analyze_execution_quality(real_overlap, sim_overlap, spike_addition)
         
-        accurate_matches = 0
-        total_testable = 0
-        match_details = []
-        used_sim_indices = set()
-        
-        for _, real_trade in real_overlap.iterrows():
-            # Find simulation trades within strict criteria
-            time_mask = (
-                (sim_overlap['timestamp'] >= real_trade['timestamp'] - time_tolerance) &
-                (sim_overlap['timestamp'] <= real_trade['timestamp'] + time_tolerance) &
-                (sim_overlap['side'] == real_trade['side'])  # Same side (buy/sell)
-            )
-            
-            potential_matches = sim_overlap[time_mask]
-            
-            if not potential_matches.empty:
-                total_testable += 1
-                
-                # Check price accuracy
-                price_diff_pct = abs(potential_matches['price'] - real_trade['price']) / real_trade['price']
-                accurate_price_matches = potential_matches[price_diff_pct <= price_tolerance]
-                
-                if not accurate_price_matches.empty:
-                    # Find best match (closest in time, then price)
-                    time_diffs = abs(accurate_price_matches['timestamp'] - real_trade['timestamp'])
-                    best_idx = time_diffs.idxmin()
-                    
-                    # Avoid double-matching
-                    if best_idx not in used_sim_indices:
-                        accurate_matches += 1
-                        used_sim_indices.add(best_idx)
-                        best_match = accurate_price_matches.loc[best_idx]
-                        
-                        match_details.append({
-                            'real_time': int(real_trade['timestamp']),
-                            'sim_time': int(best_match['timestamp']),
-                            'time_diff': int(abs(real_trade['timestamp'] - best_match['timestamp'])),
-                            'real_price': float(real_trade['price']),
-                            'sim_price': float(best_match['price']),
-                            'price_diff_pct': float(abs(real_trade['price'] - best_match['price']) / real_trade['price'] * 100),
-                            'side': real_trade['side'],
-                            'accurate': True
-                        })
+        # Extract results
+        accurate_matches = execution_results['matched_trades']
+        total_testable = execution_results['total_sim_trades']
+        match_details = execution_results['match_details']
 
-        # Calculate accuracy metrics
-        execution_accuracy = (accurate_matches / total_testable * 100) if total_testable > 0 else 0
+        # Calculate accuracy metrics (now correctly based on sim trades)
+        execution_accuracy = execution_results['accuracy_pct']
         
         # More nuanced verdict logic
         if total_testable == 0:
@@ -272,6 +352,7 @@ class ImprovedDataPreprocessor:
                 'accurate_matches': accurate_matches,
                 'total_testable': total_testable,
                 'execution_accuracy_pct': execution_accuracy,
+                'spike_addition_used': spike_addition,
                 'overlap_duration': int(overlap_duration),
                 'overlap_real_trades': len(real_overlap)
             },
@@ -286,29 +367,51 @@ class ImprovedDataPreprocessor:
         }
 
     def process_all_data(self) -> Dict[str, Any]:
-        """Process all simulation files with improved analysis"""
+        """Process simulation files efficiently - only load sim data for dates with real trades"""
         print("🔄 Starting improved data preprocessing...")
         
-        # Get all simulation files
-        pattern = "data/HL_btcusdt_BTC/parrot_HL_btcusdt_BTC_*.pickle"
-        files = glob.glob(pattern)
-        
-        if not files:
-            print("❌ No simulation files found")
-            return {}
-        
-        print(f"📊 Found {len(files)} simulation files to process")
-        
-        # Load real trades once
-        print("📈 Loading real trades data...")
+        # Load real trades first and analyze by date
+        print("📈 Loading and analyzing real trades data...")
         real_trades = self.load_real_trades("data/agent_live_data.csv")
         print(f"✅ Loaded {len(real_trades)} real trades")
         print(f"📅 Real data period: {datetime.fromtimestamp(real_trades['timestamp'].min())} to {datetime.fromtimestamp(real_trades['timestamp'].max())}")
         
+        # Analyze real trades by date to see which dates have activity
+        print("🔍 Analyzing real trades by date...")
+        real_trades_by_date = self.analyze_real_trades_by_date(real_trades)
+        
+        print(f"📅 Found real trading activity on {len(real_trades_by_date)} dates:")
+        for date_str, info in real_trades_by_date.items():
+            print(f"  {date_str}: {info['trade_count']} trades, ${info['total_volume']:,.0f} volume")
+        
+        # Get all simulation files
+        pattern = "data/HL_btcusdt_BTC/parrot_HL_btcusdt_BTC_*.pickle"
+        all_sim_files = glob.glob(pattern)
+        
+        if not all_sim_files:
+            print("❌ No simulation files found")
+            return {}
+        
+        print(f"📊 Found {len(all_sim_files)} total simulation files")
+        
+        # Filter simulation files to only those with corresponding real trades
+        relevant_sim_files = []
+        for file in all_sim_files:
+            basename = os.path.basename(file)
+            date_part = basename.replace("parrot_HL_btcusdt_BTC_", "").replace(".pickle", "")
+            if date_part in real_trades_by_date:
+                relevant_sim_files.append((file, date_part))
+        
+        print(f"🎯 Only {len(relevant_sim_files)} simulation files have corresponding real trades")
+        if len(relevant_sim_files) < len(all_sim_files):
+            skipped_count = len(all_sim_files) - len(relevant_sim_files)
+            print(f"⏭️ Skipping {skipped_count} simulation files with no real trading data")
+        
         # Overall summary
         overall_summary = {
             "processing_date": datetime.now().isoformat(),
-            "total_files": len(files),
+            "total_files": len(all_sim_files),
+            "relevant_files": len(relevant_sim_files),
             "real_trades_count": len(real_trades),
             "real_trades_ec": float((real_trades['price'] * real_trades['quantity']).sum()),
             "date_results": {},
@@ -319,20 +422,27 @@ class ImprovedDataPreprocessor:
         successful_analyses = []
         failed_analyses = []
         
-        # Process each simulation file
-        for i, file in enumerate(sorted(files)):
-            basename = os.path.basename(file)
-            date_part = basename.replace("parrot_HL_btcusdt_BTC_", "").replace(".pickle", "")
-            
-            print(f"🔍 Processing {date_part} ({i+1}/{len(files)})...")
+        # Sort files by date for chronological processing
+        relevant_sim_files.sort(key=lambda x: x[1])
+        
+        # Process only relevant simulation files (those with real trades)
+        for i, (file, date_part) in enumerate(relevant_sim_files):
+            print(f"🔍 Processing {date_part} ({i+1}/{len(relevant_sim_files)})...")
             
             try:
-                # Load simulation data
+                # Get pre-filtered real trades for this date
+                real_trades_info = real_trades_by_date[date_part]
+                date_filtered_real_trades = real_trades_info['trades_data']
+                
+                print(f"  📊 Using {len(date_filtered_real_trades)} real trades for {date_part}")
+                
+                # Load simulation data (only for dates we know have real trades)
+                print(f"  💾 Loading simulation data for {date_part}...")
                 with open(file, 'rb') as f:
                     sim_data = pickle.load(f)
                 
-                # Run improved analysis
-                results = self.analyze_single_date(real_trades, sim_data, date_part)
+                # Run improved analysis with date-filtered real trades
+                results = self.analyze_single_date(date_filtered_real_trades, sim_data, date_part)
                 
                 if 'error' not in results:
                     # Extract key metrics for fast access
@@ -388,7 +498,21 @@ class ImprovedDataPreprocessor:
                 failed_analyses.append(error_summary)
                 print(f"  ❌ {date_part}: EXCEPTION - {str(e)}")
         
-        # Calculate overall statistics with PARTIAL support
+        # Add skipped entries for simulation files that were never processed (no real trades)
+        for file in all_sim_files:
+            basename = os.path.basename(file)
+            date_part = basename.replace("parrot_HL_btcusdt_BTC_", "").replace(".pickle", "")
+            if date_part not in overall_summary['date_results']:
+                skipped_summary = {
+                    'date': date_part,
+                    'verdict': 'SKIPPED',
+                    'reason': 'No real trades found for this date - simulation file not processed',
+                    'has_detailed_results': False
+                }
+                overall_summary['date_results'][date_part] = skipped_summary
+        
+        # Calculate overall statistics with PARTIAL support  
+        skipped_count = sum(1 for r in overall_summary['date_results'].values() if r.get('verdict') == 'SKIPPED')
         if successful_analyses:
             yes_count = sum(1 for r in successful_analyses if r['verdict'] == 'YES')
             partial_count = sum(1 for r in successful_analyses if r['verdict'] == 'PARTIAL')
@@ -405,6 +529,7 @@ class ImprovedDataPreprocessor:
             overall_summary['summary_stats'] = {
                 'successful_analyses': len(successful_analyses),
                 'failed_analyses': len(failed_analyses),
+                'skipped_analyses': skipped_count,
                 'yes_verdicts': yes_count,
                 'partial_verdicts': partial_count,
                 'no_verdicts': total_count - yes_count - partial_count,
@@ -424,6 +549,8 @@ class ImprovedDataPreprocessor:
         print(f"\n🎯 Improved Preprocessing Complete!")
         print(f"✅ Successful: {len(successful_analyses)}")
         print(f"❌ Failed: {len(failed_analyses)}")
+        if skipped_count > 0:
+            print(f"⏭️ Skipped: {skipped_count} (no real trades for those dates)")
         if successful_analyses:
             overall_verdict = overall_summary['overall_verdict']
             avg_accuracy = overall_summary['summary_stats']['avg_execution_accuracy']
@@ -488,10 +615,14 @@ def main():
     
     print(f"📁 Found {len(files)} simulation files to process")
     
-    response = input("🤔 This may take several minutes. Continue? (y/n): ").strip().lower()
-    if response != 'y':
-        print("❌ Preprocessing cancelled")
-        return
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == '--auto':
+        print("🔄 Running in automatic mode...")
+    else:
+        response = input("🤔 This may take several minutes. Continue? (y/n): ").strip().lower()
+        if response != 'y':
+            print("❌ Preprocessing cancelled")
+            return
     
     # Run improved preprocessing
     preprocessor = ImprovedDataPreprocessor()
